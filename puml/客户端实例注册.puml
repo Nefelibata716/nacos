@@ -1,0 +1,55 @@
+@startuml
+
+title
+ <u>实例注册</u>
+end title
+
+autonumber
+
+actor "nacos client" as client
+participant "NacosNamingService" as NamingService #orange
+participant "NamingClientProxyDelegate" as clientProxy
+participant "InstancesChangeNotifier" as changeNotifier
+participant "NotifyCenter" as NotifyCenter
+participant "ServiceInfoHolder" as ServiceInfoHolder
+participant "NamingHttpClientProxy" as httpClientProxy
+participant "NamingGrpcClientProxy" as grpcClientProxy
+participant "NamingGrpcRedoService" as redoService
+participant "GrpcClient" as RpcClient
+participant "GrpcConnection" as Connection
+
+
+activate client
+
+client -> NamingService: registerInstance
+activate NamingService
+NamingService -> NamingService: 创建Instance对象
+
+NamingService -> clientProxy : registerService
+
+activate clientProxy
+
+clientProxy -> grpcClientProxy:getExecuteClientProxy获取执行客户端代理（判断使用 http 还是 grpc ）
+
+activate grpcClientProxy
+
+grpcClientProxy -> redoService:生产InstanceRedoData，主要定时处理失败重试情况
+grpcClientProxy -> grpcClientProxy:生成InstanceRequest
+grpcClientProxy -> RpcClient:  发起request请求
+RpcClient -> Connection: 发起request请求
+Connection -> Connection: request请求转为GrpcRequest(Payload)请求
+Connection -> grpcFutureServiceStub: 发起 grpc 网络请求
+
+deactivate grpcClientProxy
+deactivate clientProxy
+
+
+
+deactivate NamingService
+
+
+
+
+
+
+@enduml
